@@ -1,0 +1,43 @@
+In order to avoid mistakes, copy/Paste the following JavaScript codes in the respective payload formatters.
+
+*****************************************************************************************
+function decodeUplink(input) {
+  var bytes = input.bytes;
+  var decoded = {};
+  decoded.alarm_status = bytes[0]?true:false;
+  decoded.measurement = (bytes[1]<<8)+bytes[2];
+  decoded.enable_alert_sound = bytes[3]?true:false;
+  return {
+    data: {
+      decoded: decoded
+    },
+    warnings: [],
+    errors: []
+  };
+}
+*****************************************************************************************
+
+*****************************************************************************************
+function encodeDownlink(input) {
+  var enable_alert_sound = ["false", "true"];
+  return {
+    bytes: [enable_alert_sound.indexOf(input.data.enable_alert_sound)],
+    fPort: 1,
+    warnings: [],
+    errors: []
+  };
+}
+
+function decodeDownlink(input) {
+  switch(input.fPort) {
+    case 1:
+      return {
+        data: {
+          enable_alert_sound: ["false", "true"][input.bytes[0]]
+        }
+     }
+    default:
+      throw Error("unknown FPort");
+  }
+}
+*****************************************************************************************
