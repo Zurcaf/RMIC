@@ -1,8 +1,11 @@
 #ifndef BLE_MANAGER_H
 #define BLE_MANAGER_H
 
-void ble_init();
-void ble_send_steps(int steps);
+enum class BLECommand { NONE, START, STOP, STATUS };
+typedef void (*BLECommandCallback)(BLECommand);
+
+void ble_init(BLECommandCallback onCommand);
+void ble_notify_status(const char* json);
 bool ble_is_connected();
 
 #endif

@@ -1,23 +1,33 @@
 #include <Arduino.h>
 #include "ble_manager.h"
+#include "session_manager.h"
 
-int steps = 0;
+void on_ble_command(BLECommand cmd) {
+    switch (cmd) {
+        case BLECommand::START:  session_start(); break;
+        case BLECommand::STOP:   session_stop();  break;
+        case BLECommand::STATUS: {
+            String s = "{\"state\":\"" + String((int)session_get_state()) + "\"}";
+            ble_notify_status(s.c_str());
+            break;
+        }
+        default: break;
+    }
+}
 
 void setup() {
     Serial.begin(115200);
+    unsigned long start = millis();
+    while (!Serial && millis() - start < 5000);
 
-    ble_init();
-
-    Serial.println("System ready...");
+    Serial.println("SETUP START");
+    session_init();
+    ble_init(on_ble_command);
+    Serial.println("SETUP DONE");
 }
 
 void loop() {
-    steps += 10;
-
-    if (ble_is_connected()) {
-        ble_send_steps(steps);
-        Serial.println("Sent steps: " + String(steps));
-    }
-
-    delay(2000);
+    session_tick();
+    Serial.println("alive");
+    delay(1000);
 }

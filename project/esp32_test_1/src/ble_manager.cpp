@@ -1,55 +1,78 @@
-#include <Arduino.h>
 #include "ble_manager.h"
-#include <NimBLEDevice.h>
+#include <Arduino.h>
+#include <BLEDevice.h>
+#include <BLEServer.h>
+#include <BLEUtils.h>
+#include <BLE2902.h>
 
-NimBLECharacteristic *pCharacteristic;
-bool deviceConnected = false;
+#define SERVICE_UUID     "4fafc201-1fb5-459e-8fcc-c5c9c331914b"
+#define CMD_CHAR_UUID    "beb5483e-36e1-4688-b7f5-ea07361b26a8"
+#define STATUS_CHAR_UUID "beb5483e-36e1-4688-b7f5-ea07361b26a9"
 
-// Callbacks
-class MyServerCallbacks: public NimBLEServerCallbacks {
-    void onConnect(NimBLEServer* pServer) {
+static BLECharacteristic* pStatusChar = nullptr;
+static bool deviceConnected = false;
+static BLECommandCallback commandCallback = nullptr;
+
+class ServerCallbacks : public BLEServerCallbacks {
+    void onConnect(BLEServer* s) {
         deviceConnected = true;
-        Serial.println("Device connected");
-    };
-
-    void onDisconnect(NimBLEServer* pServer) {
+        Serial.println("[BLE] Connected");
+    }
+    void onDisconnect(BLEServer* s) {
         deviceConnected = false;
-        Serial.println("Device disconnected");
-        NimBLEDevice::startAdvertising(); // restart advertising
+        Serial.println("[BLE] Disconnected");
+        s->startAdvertising();
     }
 };
 
-void ble_init() {
-    NimBLEDevice::init("PetBionic");
+class CmdCallbacks : public BLECharacteristicCallbacks {
+    void onWrite(BLECharacteristic* c) {
+        if (!commandCallback) return;
+        std::string val = c->getValue();
+        Serial.printf("[BLE] Received: %s\n", val.c_str());
+        if      (val == "START")  commandCallback(BLECommand::START);
+        else if (val == "STOP")   commandCallback(BLECommand::STOP);
+        else if (val == "STATUS") commandCallback(BLECommand::STATUS);
+    }
+};
 
-    NimBLEServer *pServer = NimBLEDevice::createServer();
-    pServer->setCallbacks(new MyServerCallbacks());
+void ble_init(BLECommandCallback onCommand) {
+    Serial.println("[BLE] Initializing...");
+    commandCallback = onCommand;
 
-    NimBLEService *pService = pServer->createService("1234");
+    BLEDevice::init("PetBionic");
 
-    pCharacteristic = pService->createCharacteristic(
-        "5678",
-        NIMBLE_PROPERTY::NOTIFY
+    BLEServer* pServer = BLEDevice::createServer();
+    pServer->setCallbacks(new ServerCallbacks());
+
+    BLEService* pService = pServer->createService(SERVICE_UUID);
+
+    BLECharacteristic* pCmdChar = pService->createCharacteristic(
+        CMD_CHAR_UUID,
+        BLECharacteristic::PROPERTY_WRITE
     );
+    pCmdChar->setCallbacks(new CmdCallbacks());
 
-    // NO descriptor
-    // NO pService->start()
+    pStatusChar = pService->createCharacteristic(
+        STATUS_CHAR_UUID,
+        BLECharacteristic::PROPERTY_NOTIFY
+    );
+    pStatusChar->addDescriptor(new BLE2902());
 
-    NimBLEAdvertising *pAdvertising = NimBLEDevice::getAdvertising();
-    pAdvertising->start();
+    pService->start();
 
-    Serial.println("BLE initialized, waiting for connection...");
+    BLEAdvertising* pAdv = BLEDevice::getAdvertising();
+    pAdv->addServiceUUID(SERVICE_UUID);
+    pAdv->setScanResponse(true);
+    pAdv->start();
+
+    Serial.println("[BLE] Advertising as PetBionic");
 }
 
-void ble_send_steps(int steps) {
-    if (!deviceConnected) return;
-
-    String json = "{\"steps\":" + String(steps) + "}";
-
-    pCharacteristic->setValue(json.c_str());
-    pCharacteristic->notify();
+void ble_notify_status(const char* json) {
+    if (!deviceConnected || !pStatusChar) return;
+    pStatusChar->setValue(json);
+    pStatusChar->notify();
 }
 
-bool ble_is_connected() {
-    return deviceConnected;
-}
+bool ble_is_connected() { return deviceConnected; }

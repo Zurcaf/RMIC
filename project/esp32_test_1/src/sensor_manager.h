@@ -1,18 +1,16 @@
 #ifndef SENSOR_MANAGER_H
 #define SENSOR_MANAGER_H
 
+#include <Arduino.h>
+
 struct SensorData {
-
-    float ax;
-    float ay;
-    float az;
-
-    float force;
-
-    unsigned long timestamp;
-
+    float ax, ay, az;      // accelerometer
+    float gx, gy, gz;      // gyroscope
+    float force;           // load cell
+    unsigned long time_ms;
 };
 
-SensorData readSensors();
+void sensor_init();
+SensorData sensor_read();
 
 #endif

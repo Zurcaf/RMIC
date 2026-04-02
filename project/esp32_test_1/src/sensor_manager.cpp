@@ -1,17 +1,14 @@
 #include "sensor_manager.h"
-#include <Arduino.h>
 
-SensorData readSensors() {
+void sensor_init() {
+    Serial.println("[Sensor] Init (stub)");
+}
 
-    SensorData data;
-
-    data.ax = random(-10,10) / 10.0;
-    data.ay = random(-10,10) / 10.0;
-    data.az = random(90,100) / 10.0;
-
-    data.force = random(0,50);
-
-    data.timestamp = millis();
-
-    return data;
+SensorData sensor_read() {
+    SensorData d;
+    d.time_ms = millis();
+    d.ax = 0.1; d.ay = 0.2; d.az = 9.8;
+    d.gx = 0.0; d.gy = 0.0; d.gz = 0.0;
+    d.force = 100.0;
+    return d;
 }
