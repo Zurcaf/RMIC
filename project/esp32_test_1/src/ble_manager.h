@@ -1,6 +1,8 @@
 #ifndef BLE_MANAGER_H
 #define BLE_MANAGER_H
 
+#include <Arduino.h>
+
 enum class BLECommand { NONE, START, STOP, STATUS };
 typedef void (*BLECommandCallback)(BLECommand);
 

@@ -1,6 +1,8 @@
 #include <Arduino.h>
 #include "ble_manager.h"
 #include "session_manager.h"
+#include <SD.h>
+#include <SPI.h>
 
 void on_ble_command(BLECommand cmd) {
     switch (cmd) {

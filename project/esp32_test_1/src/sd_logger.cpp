@@ -2,7 +2,7 @@
 #include <SD.h>
 #include <SPI.h>
 
-#define SD_CS_PIN 20
+#define SD_CS_PIN 8
 
 static File logFile;
 static File readFile;
@@ -12,11 +12,12 @@ static const int BUFFER_SIZE = 2048;
 static char writeBuffer[BUFFER_SIZE];
 static int bufferPos = 0;
 
+
 void sd_init() {
     Serial.println("[SD] Initializing SPI...");
-    SPI.begin(21, 7, 6, 20); // SCK=GPIO21, MISO=GPIO7, MOSI=GPIO6, CS=GPIO20
+    SPI.begin(21, 7, 6, 8); // SCK=D6(21), MISO=D5(7), MOSI=D4(6), CS=D8(8)
     
-    if (!SD.begin(20)) {
+    if (!SD.begin(8)) {
         Serial.println("[SD] Mount failed!");
         return;
     }
