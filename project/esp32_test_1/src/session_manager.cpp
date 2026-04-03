@@ -2,6 +2,11 @@
 #include "ble_manager.h"
 #include "sd_logger.h"
 #include "sensor_manager.h"
+#include "wifi_manager.h"
+#include "firestore_sync.h"
+
+#include <NimBLEDevice.h>
+#include <WiFi.h>
 
 static SessionState state = SessionState::IDLE;
 static String sessionId = "";
@@ -24,9 +29,30 @@ void session_start() {
 void session_stop() {
     if (state != SessionState::RECORDING) return;
     sd_close_session();
+    state = SessionState::SYNCING;
+    Serial.println("[Session] Stopped, syncing...");
+
+    // Just stop advertising, don't deinit BLE
+    NimBLEDevice::stopAdvertising();
+    Serial.println("[BLE] Advertising stopped");
+
+    wifi_connect();
+    bool ok = firestore_sync(sessionId);
+
+    if (ok) {
+        Serial.println("[Session] Sync complete!");
+    } else {
+        Serial.println("[Session] Sync failed - data safe on SD");
+    }
+
+    WiFi.disconnect(true);
+    Serial.println("[WiFi] Disconnected");
+
+    // Restart advertising after sync
+    NimBLEDevice::startAdvertising();
+    Serial.println("[BLE] Advertising restarted");
+
     state = SessionState::IDLE;
-    Serial.println("[Session] Stopped");
-    ble_notify_status("{\"state\":\"idle\"}");
 }
 
 void session_tick() {

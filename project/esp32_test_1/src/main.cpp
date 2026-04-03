@@ -30,6 +30,5 @@ void setup() {
 
 void loop() {
     session_tick();
-    Serial.println("alive");
     delay(1000);
 }
